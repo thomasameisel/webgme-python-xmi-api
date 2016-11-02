@@ -1,4 +1,7 @@
+## API Calls
+
 initialize(filename) - returns root Node
+
 Node class
   - getNodeByPath(path) - return child with the path
   - getChildren() - return list of immediate children
@@ -16,7 +19,18 @@ Node class
   - isMetaNode() - return if node is meta
   - getAllMetaNodes() - return list of all meta nodes
 
-  - ref to element in element tree (etree) (from xmi) (_el)
-  - ref to root element (_root)
+  - ref to element in element tree (etree) (from xmi) (\_el)
+  - ref to root element (\_root)
+
+Done
+  - getChildren() - return list of immediate children
+  - getAttribute(attributeName) - return attribute of node
+  - getAttributeNames() - return list of attribute names
+  - getRelid() - return relative id of node
+  - getGuid() - return guid of node
+  - isMetaNode() - return if node is meta
+
+  - ref to element in element tree (etree) (from xmi) (\_el)
+  - ref to root element (\_root)
 
 TODO: sets
