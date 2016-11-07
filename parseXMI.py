@@ -14,21 +14,12 @@ class Node:
     def _elsToNodes(self, els):
         return map(lambda x: self._elToNode(x), els)
 
-    def _getElAttrib(self, el, attr):
-        return el.get(attr)
-
-    def _isElMeta(self, el):
-        return self._getElAttrib(el, 'isMeta') == 'true'
-
     def _getNodesByElAttrib(self, attrib, val):
-        nodes = filter(lambda x: self._getElAttrib(x, attrib) == val, self._el)
-        if (len(nodes) == 0):
-            return None
-        else:
-            return self._elsToNodes(nodes)
+        nodes = filter(lambda x: x.get(attrib) == val, self._el)
+        return self._elsToNodes(nodes)
 
     def isMetaNode(self):
-        return self._isElMeta(self._el)
+        return el.get('isMeta') == 'true'
 
     def getChildren(self, metaType=None):
         if metaType:
@@ -38,22 +29,34 @@ class Node:
             return self._elsToNodes(self._el)
 
     def getAttribute(self, attributeName):
-        return self._getElAttrib(self._el, 'atr-' + attributeName)
+        return self._el.get('atr-' + attributeName)
 
     def getAttributeNames(self):
         return map(lambda x: x[4:], filter(lambda x: x.startswith('atr-'), self._el.attrib))
 
     def getRelid(self):
-        return '/' + self._getElAttrib(self._el, 'relid')
+        relid = self._el.get('relid')
+        if (relid is None):
+            return None
+        else:
+            return '/' + self._el.get('relid')
 
     def getGuid(self):
-        return self._getElAttrib(self._el, 'id')
+        return self._el.get('id')
 
     def getNodeByPath(self, path):
-        return self._getNodesByElAttrib('relid', path[1:])[0]
+        nodes = self._getNodesByElAttrib('relid', path[1:])
+        if (len(nodes) == 0):
+            return None
+        else:
+            return nodes[0]
 
     def getNodeByGuid(self, guid):
-        return self._getNodesByElAttrib('id', guid)[0]
+        nodes = self._getNodesByElAttrib('id', guid)
+        if (len(nodes) == 0):
+            return None
+        else:
+            return nodes[0]
 
 class Core:
     def __init__(self, file):
@@ -70,4 +73,4 @@ class Core:
 if __name__ == '__main__':
     core = Core('FSMSignalFlow.xmi')
     rootNode = core.getRootNode()
-    print core.getAllMetaNodes()
+    print rootNode.getChildren()[0].getGuid()
