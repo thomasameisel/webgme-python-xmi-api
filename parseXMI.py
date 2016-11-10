@@ -119,7 +119,6 @@ class Node:
             if path:
                 return path
 
-<<<<<<< HEAD
     def getPointerNames(self):
         pass
 
