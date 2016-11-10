@@ -1,4 +1,7 @@
-import xml.etree.ElementTree as ET
+try:
+    import xml.etree.cElementTree as ET
+except ImportError:
+    import xml.etree.ElementTree as ET
 
 class Node:
     def __init__(self, el, root=None):
@@ -116,6 +119,7 @@ class Node:
             if path:
                 return path
 
+<<<<<<< HEAD
     def getPointerNames(self):
         pass
 
@@ -145,11 +149,28 @@ class Node:
     def getCollection(self, pointerName):
         pass
 
+    def print_node(self, tab):
+        print tab, self.get_attribute('name')
+        print tab, '  relid', self.get_relid()
+        print tab, '  guid', self.get_guid()
+        attribute_names = self.get_attribute_names()
+        print tab, '  attributes'
+        for attribute in attribute_names:
+            print tab, '    ', attribute, self.get_attribute(attribute)
+
+
 class Core:
     def __init__(self, file):
         tree = ET.parse(file)
         self._el = tree.getroot()
         self._root = Node(self._el)
+
+    def _print_tree(self, node, tab):
+        for child in node.get_children():
+            child.print_node(tab)
+            if (len(child.get_children()) > 0):
+                print tab, '  children'
+                self._print_tree(child, tab + '    ')
 
     def get_root_node(self):
         return self._root
@@ -162,6 +183,9 @@ class Core:
 
     def get_node_by_guid(self, guid):
         return self._root.get_node_by_guid(guid)
+
+    def print_tree(self):
+        self._print_tree(self._root, '')
 
 if __name__ == '__main__':
     core = Core('FSMSignalFlow.xmi')
