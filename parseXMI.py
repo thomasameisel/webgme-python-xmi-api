@@ -88,7 +88,7 @@ class Node:
         if (el is None):
             return None
         else:
-            return self._el_to_node(el)
+            return self._el_to_node(el, self._root)
 
     def get_node_by_guid(self, guid):
         el = self._get_el_by_guid(self._el, guid)
