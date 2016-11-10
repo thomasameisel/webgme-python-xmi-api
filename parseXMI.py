@@ -58,6 +58,20 @@ class Node:
         else:
             return nodes[0]
 
+    def _getPartialPath(self, end, nlist):
+        print self.getRelid(), end.getRelid()
+        if self.getRelid() == end.getRelid():
+            print "ab"
+            return nlist
+        children = self.getChildren()
+        if children:
+            for child in children:
+                print "ac"
+                return child.getPartialPath(end, nlist+[self.getRelid()])
+        # else:
+        #     return None
+
+
 class Core:
     def __init__(self, file):
         tree = ET.parse(file)
@@ -70,7 +84,20 @@ class Core:
     def getAllMetaNodes(self):
         return map(lambda x: Node(x, self._root), filter(lambda x: x.get('atr-name') == x.tag, self._el.iter()))
 
+    def getPath(self, node):
+        children = self._root.getChildren()
+        for child in children:
+            print child.getRelid()
+            path = child.getPartialPath(node, [child.getRelid()])
+            if path:
+                return path
+
+
 if __name__ == '__main__':
     core = Core('FSMSignalFlow.xmi')
     rootNode = core.getRootNode()
-    print rootNode.getChildren()[0].getGuid()
+    # print rootNode.getChildren()[1].getRelid()
+    anode = rootNode.getChildren()[1]
+    bnode = anode.getChildren()[1]
+    # print bnode.getRelid()
+    print core.getPath(bnode)
