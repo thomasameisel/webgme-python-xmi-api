@@ -113,6 +113,18 @@ class Node:
             if path:
                 return path
 
+    def getPointerNames(self):
+        pass
+
+    def getPointer(self, pointerName):
+        pass
+
+    def getBase(self):
+        pass
+
+    def getCollection(self, pointerName):
+        pass
+
 class Core:
     def __init__(self, file):
         tree = ET.parse(file)
