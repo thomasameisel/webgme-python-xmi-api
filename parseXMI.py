@@ -8,11 +8,14 @@ class Node:
         else:
             self._root = self
 
-    def _el_to_node(self, el):
+    def _el_to_node(self, el, root):
         return Node(el, self._root)
 
     def _els_to_nodes(self, els):
-        return map(lambda x: self._el_to_node(x), els)
+        return map(lambda x: self._el_to_node(x, self._root), els)
+
+    def get_root(self):
+        return self._root 
 
     def _get_children_by_el_attrib(self, attrib, val):
         nodes = filter(lambda x: x.get(attrib) == val, self._el)
@@ -89,7 +92,7 @@ class Node:
         if (el is None):
             return None
         else:
-            return self._el_to_node(el)
+            return self._el_to_node(el, self._root)
 
     def get_child_by_relid(self, relid):
         nodes = self._get_children_by_el_attrib('relid', relid)
@@ -120,7 +123,24 @@ class Node:
         pass
 
     def getBase(self):
-        pass
+        base_guid = self._el.get('base')
+        # if base_guid:
+        #     if self.is_meta_node():
+        #         pass
+        #     else:
+        #         pass
+        # else:
+        #     return self
+
+        print self._root
+        print base_guid
+        print self._root.get_relid()
+        nodes = self._get_children_by_el_attrib('base', base_guid)
+        print nodes
+        if (len(nodes) == 0):
+            return None
+        else:
+            return nodes[0]
 
     def getCollection(self, pointerName):
         pass
@@ -147,8 +167,8 @@ if __name__ == '__main__':
     core = Core('FSMSignalFlow.xmi')
     rootNode = core.get_root_node()
     print rootNode.get_node_by_relative_path('/6/0')
-    # print rootNode.getChildren()[1].getRelid()
+    # print rootNode.getChildren()[1].get_relid()
     anode = rootNode.get_children()[1]
     bnode = anode.get_children()[1]
-    # print bnode.getRelid()
-    print bnode.get_path()
+    print bnode.get_root().get_children()   
+    # print bnode.getBase()
