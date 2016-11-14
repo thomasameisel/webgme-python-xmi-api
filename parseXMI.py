@@ -1,3 +1,5 @@
+import re
+
 try:
     import xml.etree.cElementTree as ET
 except ImportError:
@@ -119,34 +121,52 @@ class Node:
             if path:
                 return path
 
-    def getPointerNames(self):
-        pass
-
-    def getPointer(self, pointerName):
-        pass
-
-    def getBase(self):
-        base_guid = self._el.get('base')
-        # if base_guid:
-        #     if self.is_meta_node():
-        #         pass
-        #     else:
-        #         pass
-        # else:
-        #     return self
-
-        print self._root
-        print base_guid
-        print self._root.get_relid()
-        nodes = self._get_children_by_el_attrib('base', base_guid)
-        print nodes
-        if (len(nodes) == 0):
+    def get_pointer_names(self):
+        def check_src(attrib):
+            match_list = map(lambda x: re.match('[1-9a-zA-Z.+-]+(src\-)[1-9a-zA-Z.+-]+', x), attrib.keys())
+            attrib_list = map(lambda x: x.group(0) if (x != None) else None, match_list)
+            for x in attrib_list:
+                if x:
+                    return x
             return None
-        else:
-            return nodes[0]
 
-    def getCollection(self, pointerName):
-        pass
+        return map(lambda x: check_src(x.attrib), filter(lambda x: check_src(x.attrib), self._el.iter()))
+
+    def get_pointer(self):
+        def check_dst(attrib):
+            match_list = map(lambda x: re.match('[1-9a-zA-Z.+-]+(dst\-)[1-9a-zA-Z.+-]+', x), attrib.keys())
+            attrib_list = map(lambda x: x.group(0) if (x != None) else None, match_list)
+            for x in attrib_list:
+                if x:
+                    return x
+            return None
+
+        dst_attrib = check_dst(self._el.attrib)
+        if dst_attrib:
+            guid = self._el.get(dst_attrib)
+            return self.get_node_by_guid(base_guid)
+        else:
+            return None
+
+    def get_base(self):
+        base_guid = self._el.get('base')
+        if base_guid:
+            return self.get_node_by_guid(base_guid)
+        else:
+            return None
+
+    def getCollection(self):
+        def check_dst(attrib):
+            match_list = map(lambda x: re.match('[1-9a-zA-Z.+-]+(dst\-)[1-9a-zA-Z.+-]+', x), attrib.keys())
+            attrib_list = map(lambda x: x.group(0) if (x != None) else None, match_list)
+            for x in attrib_list:
+                if x:
+                    return x
+            return None
+
+        guid = self.get_guid()
+        collection  = filter(lambda x: x.get(check_dst(x.attrib)) == guid, filter(lambda x: check_dst(x.attrib), self._root._el.iter()))
+        return map(lambda x: Node(x, self._root), collection)
 
     def print_node(self, tab):
         print tab, self.get_attribute('name')
@@ -186,12 +206,12 @@ class Core:
     def print_tree(self):
         self._print_tree(self._root, '')
 
+
 if __name__ == '__main__':
     core = Core('FSMSignalFlow.xmi')
+    print core.get_all_meta_nodes()
     rootNode = core.get_root_node()
     print rootNode.get_node_by_relative_path('/6/0')
-    # print rootNode.getChildren()[1].get_relid()
     anode = rootNode.get_children()[1]
     bnode = anode.get_children()[1]
-    print bnode.get_root().get_children()   
-    # print bnode.getBase()
+    print bnode.get_pointer_names()
