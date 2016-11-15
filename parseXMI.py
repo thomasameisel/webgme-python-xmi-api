@@ -70,7 +70,7 @@ class Node:
         #     return None
 
     def is_meta_node(self):
-        return el.get('isMeta') == 'true'
+        return self._el.get('isMeta') == 'true'
 
     def get_children(self, meta_type=None):
         if meta_type is not None:
@@ -161,6 +161,12 @@ class Node:
     def get_collection_paths(self):
         return map(lambda x: x.get_path(), self.get_collection_nodes())
 
+    def get_meta_node(self):
+        if self.is_meta_node():
+            return self
+        else:
+            return self.get_base()
+
     def print_node(self, tab):
         print tab, self.get_attribute('name')
         print tab, '  relid', self.get_relid()
@@ -188,7 +194,7 @@ class Core:
         return self._root
 
     def get_all_meta_nodes(self):
-        return map(lambda x: Node(x, self._root), filter(lambda x: x.get('atr-name') == x.tag, self._el.iter()))
+        return map(lambda x: Node(x, self._root), filter(lambda x: x.get('isMeta') == 'true', self._el.iter()))
 
     def get_node_by_path(self, path):
         return self._root.get_node_by_relative_path(path)
@@ -199,16 +205,48 @@ class Core:
     def print_tree(self):
         self._print_tree(self._root, '')
 
+def mini_project_2(root_node):
+    structure = dict()
+    structure['isMeta'] = root_node.is_meta_node()
+    structure['metaType'] = root_node.get_meta_node().get_attribute('name')
+    for attr_name in root_node.get_attribute_names():
+        structure[attr_name] = root_node.get_attribute(attr_name)
+    for ptr_name in root_node.get_pointer_names():
+        structure[ptr_name] = root_node.get_pointer(ptr_name).get_attribute('name')
+    children = root_node.get_children()
+    if len(children) > 0:
+        structure['children'] = []
+        for child in children:
+            structure['children'].append(mini_project_2(child))
+    return structure
+
+def mini_project_2_meta(meta_nodes):
+    res = []
+    for meta_node in meta_nodes:
+        attr = dict()
+        attr['name'] = meta_node.get_attribute('name')
+        attr['path'] = meta_node.get_path()
+        attr['nbrOfChildren'] = len(meta_node.get_children())
+        base = meta_node.get_base()
+        attr['base'] = None
+        if base is not None:
+            attr['base'] = base.get_attribute('name')
+        res.append(attr)
+    return res
 
 if __name__ == '__main__':
     core = Core('FSMSignalFlow.xmi')
-    print core.get_all_meta_nodes()
-    rootNode = core.get_root_node()
-    core.print_tree()
-    print rootNode.get_node_by_relative_path('/6/0')
-    anode = rootNode.get_children()[1]
-    bnode = anode.get_children()[1]
-    print bnode.get_pointer_names()
-    print bnode.get_pointer('src').get_attribute('name')
-    node = core.get_node_by_guid('3b3adeac-1733-cd41-4d07-4c3fd0798f1e')
-    print node.get_collection_paths()
+    root_node = core.get_root_node()
+    # core.print_tree()
+
+    # print
+    # print
+
+    structure = dict()
+    structure['name'] = 'ROOT'
+    structure['children'] = []
+    for child in root_node.get_children():
+        structure['children'].append(mini_project_2(child))
+    print structure
+    print
+    print mini_project_2_meta(core.get_all_meta_nodes())
