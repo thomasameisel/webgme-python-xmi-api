@@ -1,5 +1,3 @@
-import re
-
 try:
     import xml.etree.cElementTree as ET
 except ImportError:
@@ -7,6 +5,9 @@ except ImportError:
 
 class Node:
     def __init__(self, el, root=None):
+        self._atr_prefix = 'atr-'
+        self._ptr_prefix = 'rel-'
+        self._invptr_prefix = 'invrel-'
         self._el = el
         if root:
             self._root = root
@@ -20,18 +21,18 @@ class Node:
         return map(lambda x: self._el_to_node(x, self._root), els)
 
     def get_root(self):
-        return self._root 
+        return self._root
 
     def _get_children_by_el_attrib(self, attrib, val):
         nodes = filter(lambda x: x.get(attrib) == val, self._el)
         return self._els_to_nodes(nodes)
 
     def _get_el_by_relative_path_lst(self, el, relative_path_lst):
-        if (len(relative_path_lst) == 0):
+        if len(relative_path_lst) == 0:
             return el
         else:
             for elChild in el:
-                if (elChild.get('relid') == relative_path_lst[0]):
+                if elChild.get('relid') == relative_path_lst[0]:
                     return self._get_el_by_relative_path_lst(elChild, relative_path_lst[1:])
             return None
 
@@ -41,9 +42,19 @@ class Node:
                 return elChild
             else:
                 potential_el = self._get_el_by_guid(elChild, guid)
-                if (potential_el is not None):
+                if potential_el is not None:
                     return potential_el
         return None
+
+    def _get_path(self, curEl, findEl, path):
+        if curEl is findEl:
+            return path
+        else:
+            for child in curEl:
+                childPath = self._get_path(child, findEl, path + '/' + child.get('relid'))
+                if childPath is not None:
+                    return childPath
+            return None
 
     def _get_partial_path(self, end, nlist):
         print self.get_relid(), end.get_relid()
@@ -62,21 +73,23 @@ class Node:
         return el.get('isMeta') == 'true'
 
     def get_children(self, meta_type=None):
-        if meta_type:
+        if meta_type is not None:
             # findall(tag) returns all immediate children with the given tag
             return self._els_to_nodes(self._el.findall(meta_type))
         else:
             return self._els_to_nodes(self._el)
 
     def get_attribute(self, attribute_name):
-        return self._el.get('atr-' + attribute_name)
+        prefix = self._atr_prefix
+        return self._el.get(prefix + attribute_name)
 
     def get_attribute_names(self):
-        return map(lambda x: x[4:], filter(lambda x: x.startswith('atr-'), self._el.attrib))
+        prefix = self._atr_prefix
+        return map(lambda x: x[len(prefix):], filter(lambda x: x.startswith(prefix), self._el.attrib) )
 
     def get_relid(self):
         relid = self._el.get('relid')
-        if (relid is None):
+        if relid is None:
             return None
         else:
             return '/' + self._el.get('relid')
@@ -87,86 +100,66 @@ class Node:
     def get_node_by_relative_path(self, relative_path):
         relative_path_lst = filter(lambda x: len(x) > 0, relative_path.split('/'))
         el = self._get_el_by_relative_path_lst(self._el, relative_path_lst)
-        if (el is None):
+        if el is None:
             return None
         else:
             return self._el_to_node(el, self._root)
 
     def get_node_by_guid(self, guid):
         el = self._get_el_by_guid(self._el, guid)
-        if (el is None):
+        if el is None:
             return None
         else:
             return self._el_to_node(el, self._root)
 
     def get_child_by_relid(self, relid):
         nodes = self._get_children_by_el_attrib('relid', relid)
-        if (len(nodes) == 0):
+        if len(nodes) == 0:
             return None
         else:
             return nodes[0]
 
     def get_child_by_guid(self, guid):
         nodes = self._get_children_by_el_attrib('id', guid)
-        if (len(nodes) == 0):
+        if len(nodes) == 0:
             return None
         else:
             return nodes[0]
 
     def get_path(self):
-        children = self._root.get_children()
-        for child in children:
-            print child.get_relid()
-            path = child._get_partial_path(self, [child.get_relid()])
-            if path:
-                return path
+        return self._get_path(self._root._el, self._el, '')
+
+    def get_pointer(self, pointer_name):
+        prefix = self._ptr_prefix
+        for attrib in self._el.attrib:
+            if attrib.startswith(prefix + pointer_name):
+                return self._root.get_node_by_guid(self._el.attrib[attrib])
+        return None
 
     def get_pointer_names(self):
-        def check_src(attrib):
-            match_list = map(lambda x: re.match('[1-9a-zA-Z.+-]+(src\-)[1-9a-zA-Z.+-]+', x), attrib.keys())
-            attrib_list = map(lambda x: x.group(0) if (x != None) else None, match_list)
-            for x in attrib_list:
-                if x:
-                    return x
-            return None
-
-        return map(lambda x: check_src(x.attrib), filter(lambda x: check_src(x.attrib), self._el.iter()))
-
-    def get_pointer(self):
-        def check_dst(attrib):
-            match_list = map(lambda x: re.match('[1-9a-zA-Z.+-]+(dst\-)[1-9a-zA-Z.+-]+', x), attrib.keys())
-            attrib_list = map(lambda x: x.group(0) if (x != None) else None, match_list)
-            for x in attrib_list:
-                if x:
-                    return x
-            return None
-
-        dst_attrib = check_dst(self._el.attrib)
-        if dst_attrib:
-            guid = self._el.get(dst_attrib)
-            return self.get_node_by_guid(base_guid)
-        else:
-            return None
+        prefix = self._ptr_prefix
+        return map(lambda x: x[len(prefix):x.rfind('-')], filter(lambda x: x.startswith(prefix), self._el.attrib) )
 
     def get_base(self):
         base_guid = self._el.get('base')
         if base_guid:
-            return self.get_node_by_guid(base_guid)
+            return self._root.get_node_by_guid(base_guid)
         else:
             return None
 
-    def getCollection(self):
-        def check_dst(attrib):
-            match_list = map(lambda x: re.match('[1-9a-zA-Z.+-]+(dst\-)[1-9a-zA-Z.+-]+', x), attrib.keys())
-            attrib_list = map(lambda x: x.group(0) if (x != None) else None, match_list)
-            for x in attrib_list:
-                if x:
-                    return x
-            return None
+    def get_collection_names(self):
+        prefix = self._invptr_prefix
+        return map(lambda x: x[len(prefix):x.rfind('-')], filter(lambda x: x.startswith(prefix), self._el.attrib) )
 
-        guid = self.get_guid()
-        collection  = filter(lambda x: x.get(check_dst(x.attrib)) == guid, filter(lambda x: check_dst(x.attrib), self._root._el.iter()))
-        return map(lambda x: Node(x, self._root), collection)
+    def get_collection_guids(self):
+        prefix = self._invptr_prefix
+        return map(lambda x: self._el.get(x), filter(lambda x: x.startswith(prefix), self._el.attrib) )
+
+    def get_collection_nodes(self):
+        return map(lambda x: self._root.get_node_by_guid(x), self.get_collection_guids())
+
+    def get_collection_paths(self):
+        return map(lambda x: x.get_path(), self.get_collection_nodes())
 
     def print_node(self, tab):
         print tab, self.get_attribute('name')
@@ -211,7 +204,11 @@ if __name__ == '__main__':
     core = Core('FSMSignalFlow.xmi')
     print core.get_all_meta_nodes()
     rootNode = core.get_root_node()
+    core.print_tree()
     print rootNode.get_node_by_relative_path('/6/0')
     anode = rootNode.get_children()[1]
     bnode = anode.get_children()[1]
     print bnode.get_pointer_names()
+    print bnode.get_pointer('src').get_attribute('name')
+    node = core.get_node_by_guid('3b3adeac-1733-cd41-4d07-4c3fd0798f1e')
+    print node.get_collection_paths()
