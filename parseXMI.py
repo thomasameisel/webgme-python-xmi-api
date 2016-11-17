@@ -1,3 +1,5 @@
+import pprint
+
 try:
     import xml.etree.cElementTree as ET
 except ImportError:
@@ -8,17 +10,18 @@ class Node:
         self._atr_prefix = 'atr-'
         self._ptr_prefix = 'rel-'
         self._invptr_prefix = 'invrel-'
+        self._set_prefix = 'set-'
         self._el = el
         if root:
             self._root = root
         else:
             self._root = self
 
-    def _el_to_node(self, el, root):
+    def _el_to_node(self, el):
         return Node(el, self._root)
 
     def _els_to_nodes(self, els):
-        return map(lambda x: self._el_to_node(x, self._root), els)
+        return map(lambda x: self._el_to_node(x), els)
 
     def get_root(self):
         return self._root
@@ -92,7 +95,7 @@ class Node:
         if relid is None:
             return None
         else:
-            return '/' + self._el.get('relid')
+            return '/' + relid
 
     def get_guid(self):
         return self._el.get('id')
@@ -103,14 +106,14 @@ class Node:
         if el is None:
             return None
         else:
-            return self._el_to_node(el, self._root)
+            return self._el_to_node(el)
 
     def get_node_by_guid(self, guid):
         el = self._get_el_by_guid(self._el, guid)
         if el is None:
             return None
         else:
-            return self._el_to_node(el, self._root)
+            return self._el_to_node(el)
 
     def get_child_by_relid(self, relid):
         nodes = self._get_children_by_el_attrib('relid', relid)
@@ -129,12 +132,26 @@ class Node:
     def get_path(self):
         return self._get_path(self._root._el, self._el, '')
 
-    def get_pointer(self, pointer_name):
+    def get_pointer_guid(self, pointer_name):
         prefix = self._ptr_prefix
         for attrib in self._el.attrib:
             if attrib.startswith(prefix + pointer_name):
-                return self._root.get_node_by_guid(self._el.attrib[attrib])
+                return self._el.attrib[attrib]
         return None
+
+    def get_pointer_node(self, pointer_name):
+        pointer_guid = self.get_pointer_guid(pointer_name)
+        if pointer_guid is not None:
+            return self._root.get_node_by_guid(pointer_guid)
+        else:
+            return None
+
+    def get_pointer_path(self, pointer_name):
+        pointer_node = self.get_pointer_node(pointer_name)
+        if pointer_node is not None:
+            return pointer_node.get_path()
+        else:
+            return None
 
     def get_pointer_names(self):
         prefix = self._ptr_prefix
@@ -160,6 +177,31 @@ class Node:
 
     def get_collection_paths(self):
         return map(lambda x: x.get_path(), self.get_collection_nodes())
+
+    def get_set_names(self):
+        prefix = self._set_prefix
+        return map(lambda x: x[len(prefix):x.rfind('-')], filter(lambda x: x.startswith(prefix), self._el.attrib) )
+
+    def get_members_guids(self, set_name):
+        prefix = self._set_prefix
+        for attrib in self._el.attrib:
+            if attrib.startswith(prefix + set_name):
+                return self._el.attrib[attrib].split(' ')
+        return None
+
+    def get_members_nodes(self, set_name):
+        members_guids = self.get_members_guids(set_name)
+        if members_guids is not None:
+            return map(lambda x: self._root.get_node_by_guid(x), members_guids)
+        else:
+            return None
+
+    def get_members_paths(self, set_name):
+        members_nodes = self.get_members_nodes(set_name)
+        if members_nodes is not None:
+            return map(lambda x: x.get_path(), members_nodes)
+        else:
+            return None
 
     def get_meta_node(self):
         if self.is_meta_node():
@@ -207,17 +249,17 @@ class Core:
 
 def mini_project_2(root_node):
     structure = dict()
-    structure['isMeta'] = root_node.is_meta_node()
-    structure['metaType'] = root_node.get_meta_node().get_attribute('name')
+    structure['3-isMeta'] = root_node.is_meta_node()
+    structure['4-metaType'] = root_node.get_meta_node().get_attribute('name')
     for attr_name in root_node.get_attribute_names():
-        structure[attr_name] = root_node.get_attribute(attr_name)
+        structure['1-' + attr_name] = root_node.get_attribute(attr_name)
     for ptr_name in root_node.get_pointer_names():
-        structure[ptr_name] = root_node.get_pointer(ptr_name).get_attribute('name')
+        structure['2-' + ptr_name] = root_node.get_pointer_node(ptr_name).get_attribute('name')
     children = root_node.get_children()
     if len(children) > 0:
-        structure['children'] = []
+        structure['5-children'] = []
         for child in children:
-            structure['children'].append(mini_project_2(child))
+            structure['5-children'].append(mini_project_2(child))
     return structure
 
 def mini_project_2_meta(meta_nodes):
@@ -235,6 +277,8 @@ def mini_project_2_meta(meta_nodes):
     return res
 
 if __name__ == '__main__':
+    pp = pprint.PrettyPrinter(indent=4)
+
     core = Core('FSMSignalFlow.xmi')
     root_node = core.get_root_node()
     # core.print_tree()
@@ -243,10 +287,10 @@ if __name__ == '__main__':
     # print
 
     structure = dict()
-    structure['name'] = 'ROOT'
-    structure['children'] = []
+    structure['1-name'] = 'ROOT'
+    structure['5-children'] = []
     for child in root_node.get_children():
-        structure['children'].append(mini_project_2(child))
-    print structure
+        structure['5-children'].append(mini_project_2(child))
+    pp.pprint(structure)
     print
-    print mini_project_2_meta(core.get_all_meta_nodes())
+    pp.pprint(mini_project_2_meta(core.get_all_meta_nodes()))
