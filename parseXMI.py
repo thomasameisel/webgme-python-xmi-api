@@ -197,9 +197,6 @@ class Node:
         else:
             return self.get_base()
 
-    def get_members(set_name):
-    	pass
-
     def print_node(self, tab):
         print tab, self.get_attribute('name')
         print tab, '  relid', self.get_relid()
