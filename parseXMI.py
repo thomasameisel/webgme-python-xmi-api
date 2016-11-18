@@ -9,6 +9,7 @@ class Node:
     def __init__(self, el, root=None):
         self._atr_prefix = 'atr-'
         self._ptr_prefix = 'rel-'
+        self._set_prefix = 'set-'
         self._invptr_prefix = 'invrel-'
         self._set_prefix = 'set-'
         self._el = el
@@ -58,19 +59,6 @@ class Node:
                 if childPath is not None:
                     return childPath
             return None
-
-    def _get_partial_path(self, end, nlist):
-        print self.get_relid(), end.get_relid()
-        if self.get_relid() == end.get_relid():
-            print "ab"
-            return nlist
-        children = self.get_children()
-        if children:
-            for child in children:
-                print "ac"
-                return child._get_partial_path(end, nlist+[self.get_relid()])
-        # else:
-        #     return None
 
     def is_meta_node(self):
         return self._el.get('isMeta') == 'true'
@@ -164,6 +152,9 @@ class Node:
         else:
             return None
 
+    def get_collection(pointer_name):
+        pass
+
     def get_collection_names(self):
         prefix = self._invptr_prefix
         return map(lambda x: x[len(prefix):x.rfind('-')], filter(lambda x: x.startswith(prefix), self._el.attrib) )
@@ -208,6 +199,23 @@ class Node:
             return self
         else:
             return self.get_base()
+
+    def get_set_names(self):
+        prefix = self._set_prefix
+        return map(lambda x: x[len(prefix):x.rfind('-')], filter(lambda x: x.startswith(prefix), self._el.attrib) )
+
+    def get_set_guids(self):
+        prefix = self._set_prefix
+        return map(lambda x: self._el.get(x), filter(lambda x: x.startswith(prefix), self._el.attrib) )
+
+    def get_set_nodes(self):
+        return map(lambda x: self._root.get_node_by_guid(x), self.get_set_guids())
+
+    def get_set_paths(self):
+        return map(lambda x: x.get_path(), self.get_set_nodes())
+
+    def get_members(set_name):
+    	pass
 
     def print_node(self, tab):
         print tab, self.get_attribute('name')
